@@ -1,5 +1,11 @@
 interface ConfigData { [key: string]: any; }
 
+/**
+ * The Config class is responsible for managing the configuration of the entire application.
+ * Stix default configuration can be overridden by modules and by you.
+ * In other hand, you can override the configuration of both modules and Stix itself.
+ * **You have total control over the configuration of stix and other installed modules.**
+ */
 export class Config {
   private data: ConfigData = {};
 

@@ -12,7 +12,16 @@ import { ApplicationModes } from './ApplicationModes';
 
 const debug = createDebugLogger('application');
 
+/**
+ * This class is Stix's heart.
+ * It is responsible for:
+ *   - Pass in the provided configuration to be handled by the Config class
+ *   - Instantiating the Service Manager with vital services and factories registered
+ *   - Bootstrapping the application
+ *   - Starting the server
+ */
 export class Application {
+
   private mode: ApplicationModes;
 
   private readonly environment: string = process.env.NODE_ENV || 'development';
@@ -27,6 +36,15 @@ export class Application {
 
   private sharedEventManager: SharedEventManager;
 
+  /**
+   * The constructor creates new instances of {@link Config} and {@link ServiceManager}.
+   * In the Config constructor, the provided config will be merged to the defaultConfig.
+   * The config provided by you can contain routes, controllers, references to installed modules
+   * and/or settings to override defaults, for example. The Service Manager constructor will be
+   * responsible for setting core services and factories.
+   *
+   * @param appConfigs An array of configs from your application
+   */
   public constructor (...appConfigs: ConfigType[]) {
     this.applicationConfigs = appConfigs;
     this.config             = new Config(defaultConfig, ...this.applicationConfigs);
@@ -49,14 +67,29 @@ export class Application {
     });
   }
 
+  /**
+   * Returns the Application mode (CLI or Server)
+   */
   public getMode (): ApplicationModes {
     return this.mode;
   }
 
+  /**
+   * Returns the instantiated Service Manager
+   */
   public getServiceManager (): ServiceManager {
     return this.serviceManager;
   }
 
+  /**
+   * This async method is responsible for loading modules and registering essential services.
+   * After all modules are loaded and the core's middleware are set,
+   * we bootstrap every registered module that we found in the config.
+   * After everything is done we emit a `'ready'` event, which allows the listeners to execute before the server starts.
+   *
+   * @param mode The application mode
+   * @param loadOnly Flag that indicates that the server shouldn't start (used for CLI)
+   */
   private async bootstrap (mode: ApplicationModes, loadOnly: boolean = false): Promise<this> {
     const config = this.config;
 
@@ -89,6 +122,9 @@ export class Application {
     return await this.start();
   }
 
+  /**
+   * Bootstraps the modules and dispatch Ready event, allowing listeners to do some work before starting the server.
+   */
   public async start (): Promise<this> {
     // Cool cool. Bootstrap the modules, because they can now get all the things.
     await this.moduleManager.bootstrap();
@@ -99,6 +135,9 @@ export class Application {
     return this;
   }
 
+  /**
+   * Bootstraps the application in cli mode.
+   */
   private async bootstrapCli () {
     const cliService = await this.serviceManager.get(CliService);
 
@@ -107,6 +146,9 @@ export class Application {
     });
   }
 
+  /**
+   * Bootstraps the application in server mode.
+   */
   private bootstrapServer () {
     const serverService = this.serviceManager.get(ServerService);
 
@@ -115,14 +157,27 @@ export class Application {
     });
   }
 
+  /**
+   * Returns the current environment in which Stix is running.
+   */
   public getEnvironment (): string {
     return this.environment;
   }
 
+  /**
+   * Returns whether or not the current environment is production.
+   */
   public isProduction (): boolean {
     return this.getEnvironment() === 'production';
   }
 
+  /**
+   * Asynchronously launches the application.
+   * This method first calls bootstrap and, when that is done, starts the server.
+   *
+   * @param mode The application mode
+   * @param loadOnly Flag that indicates that the server shouldn't start (used for CLI)
+   */
   public async launch (mode: ApplicationModes = ApplicationModes.Server, loadOnly: boolean = false): Promise<this> {
     this.config.merge({ application: { mode } });
 
